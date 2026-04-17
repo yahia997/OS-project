@@ -33,28 +33,35 @@ int main(int argc, char *argv[]) {
     // so remove trailing new line
     command[strcspn(command, "\n")] = '\0';
 
-    // command name (first word in the input)
-    char* cmd_name = strtok(command, " ");
-
     // extract args
-    char* args[2] = {cmd_name, NULL};
+    char* args[100];
+    int i = 0;
+
+    char* token = strtok(command, " ");
+    while (token != NULL && i <  99) {
+      args[i++] = token;
+      token = strtok(NULL, " "); // parse the next word
+    }
+    args[i] = NULL; // to find execvp 
 
     // to detect if command found
     bool found_flag = 0;
     
     // loop through commands list
     for(int i = 0; commands[i] != NULL; i++) {
-      if (cmd_name != NULL && strcmp(commands[i]->name, args[0]) == 0) {
+      if (args[0] != NULL && strcmp(commands[i]->name, args[0]) == 0) {
         commands[i]->run(commands[i], args);
 
         found_flag = true;
       }
     }
-
+    
+    // other command using fork and exec
     if(!found_flag) {
       // try to run unbuilt command
       Command* generic_cmd = unbuiltin_command(args[0]);
       generic_cmd->run(generic_cmd, args);
+
     }    
   }
 
