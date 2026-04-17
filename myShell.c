@@ -33,11 +33,23 @@ int main(int argc, char *argv[]) {
     // so remove trailing new line
     command[strcspn(command, "\n")] = '\0';
 
-    // extract args
-    char* args[100];
+    // list to handle pipes in future
+    char* input_commands[50];
     int i = 0;
 
-    char* token = strtok(command, " ");
+    char* cmd = strtok(command, "|");
+    while (cmd != NULL && i < 50) {
+      input_commands[i++] = cmd;
+      cmd = strtok(NULL, "|");
+    }
+
+    // extract args from each command
+    char* args[100];
+    i = 0;
+
+    // currently parse first command only
+    // Yusef wael will hanle pipes
+    char* token = strtok(input_commands[0], " ");
     while (token != NULL && i <  99) {
       args[i++] = token;
       token = strtok(NULL, " "); // parse the next word
