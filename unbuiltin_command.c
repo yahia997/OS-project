@@ -6,7 +6,8 @@
 #include <sys/wait.h>
 
 // override run and help functions
-static void run(Command* self, char** args) {
+static void run(Command* self, char** args, bool background) {
+  (void)self;
   pid_t pid = fork();
 
   if (pid < 0) {
@@ -19,12 +20,17 @@ static void run(Command* self, char** args) {
     perror(args[0]);
     exit(EXIT_FAILURE);
   }else { // parent
-    int status;
-    waitpid(pid, &status, 0);
+    if (background) {
+      printf("Started background process %d\n", pid);
+    } else {
+      int status;
+      waitpid(pid, &status, 0);
+    }
   }
 }
 
 static void help(Command* self) {
+  (void)self;
   printf("To run any unbuilt command using fork and execvp\n");
 }
 
