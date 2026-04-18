@@ -5,7 +5,10 @@
 #include <unistd.h>
 
 // override run and help functions
-static void run(Command* self, char** args) {
+static void run(Command* self, char** args, bool background) {
+  (void)self;
+  (void)args;
+  (void)background;
   char cwd[1024];
 
   if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -16,6 +19,7 @@ static void run(Command* self, char** args) {
 }
 
 static void help(Command* self) {
+  (void)self;
   printf("pwd => print working directory\n");
   printf("To use type: pwd\n");
 }
@@ -23,7 +27,8 @@ static void help(Command* self) {
 Command* pwd_command() {
   Command* cmd = (Command*)malloc(sizeof(Command));
 
-  cmd->name = strdup("pwd");
+  cmd->name = (char*)malloc(strlen("pwd") + 1);
+  strcpy(cmd->name, "pwd");
   cmd->max_args = 0;
   cmd->run = run;      
   cmd->help = help;    
