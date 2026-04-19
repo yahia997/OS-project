@@ -1,4 +1,4 @@
 all: 
-	gcc myShell.c pwd.c exit.c unbuiltin_command.c
+	gcc myShell.c builtin.c
 clean:
 	rm -f sysinfo
