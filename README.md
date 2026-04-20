@@ -183,10 +183,31 @@ $ sleep 10 | sleep 10 | sleep 10
 ```
 
 ```bash
+$ sleep 1000
+^C$ 
+```
+
+### Background with pipes
+```bash
+$ sleep 10 | sleep 10 | sleep 10 &
+[pipeline running in background]
+$ 
+```
+
+```bash
 $ sleep 100
-^Z^Z^Z
-^Z^Z^Z
-^C
-yahya@Yahia-Mahmoud:/mnt/d/University/Third Year/Second semester/OS/project/project$
+^Z
+[560]  + Stopped (signal 20)  sleep
+$ ps -cf
+UID          PID    PPID CLS PRI STIME TTY          TIME CMD
+yahya        403     399 TS   19 06:45 pts/2    00:00:00 -bash
+yahya        446     403 TS   19 06:47 pts/2    00:00:00 /bin/bash ./tests.sh
+yahya        523     446 TS   19 06:47 pts/2    00:00:00 [myShell] <defunct>
+yahya        542     403 TS   19 06:48 pts/2    00:00:00 ./myShell
+yahya        555     542 TS   19 06:48 pts/2    00:00:00 [sleep] <defunct>
+yahya        556     542 TS   19 06:48 pts/2    00:00:00 [sleep] <defunct>
+yahya        557     542 TS   19 06:48 pts/2    00:00:00 [sleep] <defunct>
+yahya        560     542 TS   19 06:49 pts/2    00:00:00 sleep 100
+yahya        561     542 TS   19 06:50 pts/2    00:00:00 ps -cf 
 ```
 

@@ -20,9 +20,6 @@ void execute_single_command(char** args, ExecutionContext* ctx, char*** history,
     // Child process
     signal(SIGTSTP, SIG_DFL);
     signal(SIGINT, SIG_DFL);  // Child should handle Ctrl+C normally
-    
-    // Put child in its own process group
-    setpgid(0, 0);
 
     // handle input redirection 
     // read data from file 
@@ -55,9 +52,15 @@ void execute_single_command(char** args, ExecutionContext* ctx, char*** history,
     exit(EXIT_FAILURE); 
   } else { 
     // parent process
+    
+    // Set child's process group
+    setpgid(pid, pid);
+    
     if (!ctx->is_background) {
       // Give terminal control to the child's process group for foreground execution
-      tcsetpgrp(STDIN_FILENO, pid);
+      if (tcsetpgrp(STDIN_FILENO, pid) < 0) {
+        perror("tcsetpgrp failed in single command");
+      }
     }
     
     if (ctx->is_background) { // background option 
@@ -66,10 +69,21 @@ void execute_single_command(char** args, ExecutionContext* ctx, char*** history,
     } else { 
       // foreground exec option 
       int status;
-      waitpid(pid, &status, 0);
-      
-      // Take back terminal control
-      tcsetpgrp(STDIN_FILENO, getpgid(0));
+      pid_t result = waitpid(pid, &status, WUNTRACED);   // Wait for stop or termination
+
+      if (result == -1) {
+          perror("waitpid");
+      } else if (WIFSTOPPED(status)) {
+          // Child was stopped by SIGTSTP (Ctrl+Z)
+          printf("\n[%d]  + Stopped (signal %d)  %s\n",
+                pid, WSTOPSIG(status), args[0]);
+      }
+
+      // ALWAYS take back terminal control after wait returns
+      signal(SIGTTOU, SIG_IGN);
+      if (tcsetpgrp(STDIN_FILENO, getpgid(0)) < 0) {
+          perror("tcsetpgrp failed restoring shell control");
+      }
     } 
   } 
 }
@@ -114,15 +128,6 @@ void execute_pipeline(char*** args, int n, ExecutionContext* ctx, char*** histor
       signal(SIGTSTP, SIG_DFL);
       signal(SIGINT, SIG_DFL);  // Child should handle Ctrl+C normally
       
-      // Put all children in the same process group
-      if (pgid == 0) {
-        // First child: create new process group
-        setpgid(0, 0);
-      } else {
-        // Subsequent children: join the first child's group
-        setpgid(0, pgid);
-      }
-      
       if (in_fd != -1) { 
         dup2(in_fd, STDIN_FILENO);
         close(in_fd);
@@ -163,6 +168,13 @@ void execute_pipeline(char*** args, int n, ExecutionContext* ctx, char*** histor
       if (pgid == 0) {
         pgid = pid;  // First child's PID becomes the group ID
         setpgid(pid, pgid);
+        
+        // Give terminal control to the pipeline immediately (foreground only)
+        if (!ctx[0].is_background) {
+          if (tcsetpgrp(STDIN_FILENO, pgid) < 0) {
+            perror("tcsetpgrp failed in pipeline");
+          }
+        }
       } else {
         setpgid(pid, pgid);
       }
@@ -190,19 +202,23 @@ void execute_pipeline(char*** args, int n, ExecutionContext* ctx, char*** histor
     return;
   }
 
-  // Give terminal control to the pipeline's process group for foreground execution
-  if (pgid > 0) {
-    tcsetpgrp(STDIN_FILENO, pgid);
-  }
-
   // Wait for all processes in the pipeline
   for (int i = 0; i < valid_pids; i++) {
-    int status;
-    waitpid(pids[i], &status, 0);
+      int status;
+      pid_t result = waitpid(pids[i], &status, WUNTRACED);
+      if (result == -1) {
+          perror("waitpid in pipeline");
+      } else if (WIFSTOPPED(status)) {
+          printf("\n[%d]  + Stopped (signal %d)\n",
+                pids[i], WSTOPSIG(status));
+      }
   }
   
   // Take back terminal control
-  tcsetpgrp(STDIN_FILENO, getpgid(0));
+  signal(SIGTTOU, SIG_IGN);  // Ignore background write to terminal signal
+  if (tcsetpgrp(STDIN_FILENO, getpgid(0)) < 0) {
+    perror("tcsetpgrp failed restoring shell control in pipeline");
+  }
 }
 
 void parse_command(char* cmd, char** args, ExecutionContext* ctx) {
@@ -287,13 +303,24 @@ void add_to_history(char*** history, int* history_cnt, char* command) {
     (*history_cnt)++;
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   // to show output immediately
   setbuf(stdout, NULL);
 
   // Initialize history
   char*** history = (char***)malloc(1000 * sizeof(char**));
   int history_cnt = 0;
+
+  // Put shell in its own process group
+  // This is CRITICAL for proper terminal control
+  pid_t shell_pgid = getpid();
+  if (setpgid(shell_pgid, shell_pgid) < 0) {
+    perror("Couldn't put shell in its own process group");
+    exit(1);
+  }
+
+  // Take control of the terminal
+  tcsetpgrp(STDIN_FILENO, shell_pgid);
 
   // Signal handling for the shell
   signal(SIGINT, SIG_IGN);   // Ignore Ctrl+C in the shell
@@ -305,7 +332,9 @@ int main(int argc, char *argv[]) {
   while(1) {
     
     // display prompt
-    printf("$ ");
+    if (isatty(STDIN_FILENO)) {
+      printf("$ ");
+    }
     
     // take user commands
     char command[1024];
@@ -350,7 +379,6 @@ int main(int argc, char *argv[]) {
 
     // Validate pipeline: if we have multiple segments, check that each has a valid command
     if (cmd_count > 1) {
-      bool incomplete_pipe = false;
       
       // Check if first segment is empty
       if (args_ptrs[0][0] == NULL) {
