@@ -1,0 +1,1 @@
+void add_to_history(char*** history, int* history_cnt, char* command);

@@ -161,7 +161,7 @@ $ cat includes_sorted.txt
 ```
 
 #### Edge cases
-Should be in the same directory
+Should be in the same directory (as `cd` affected the sub process of the pipe not the parent shell)
 ```bash
 $ ls
 'OS - Final Project.pdf'   codecrafters-shell-c   ls.txt   project
@@ -169,7 +169,7 @@ $ cd .. | ls
 'OS - Final Project.pdf'   codecrafters-shell-c   ls.txt   project
 ```
 
-Should not exit the shell
+Should not exit the shell, (exit in the sub process of the pipe)
 ```bash
 $ exit | pwd
 /mnt/d/University/Third Year/Second semester/OS/project
@@ -181,11 +181,13 @@ $ # our shell is not terminated
 $ sleep 10 | sleep 10 | sleep 10
 ^C$ # The foreground ends not the shell
 ```
+ctrl+c stopped the foreground only but the shell still working (pipe case)
 
 ```bash
 $ sleep 1000
 ^C$ 
 ```
+ctrl+c stopped the foreground only but the shell still working(single command case)
 
 ### Background with pipes
 ```bash
@@ -210,4 +212,28 @@ yahya        557     542 TS   19 06:48 pts/2    00:00:00 [sleep] <defunct>
 yahya        560     542 TS   19 06:49 pts/2    00:00:00 sleep 100
 yahya        561     542 TS   19 06:50 pts/2    00:00:00 ps -cf 
 ```
+process `560` moved successfully from foreground to the background when pressed ctrl+z
+
+```bash
+$ sleep 100 | sleep 100 | sleep 100
+^Z
+[666]  + Stopped (signal 20)
+
+[667]  + Stopped (signal 20)
+
+[668]  + Stopped (signal 20)
+$ ps -cf
+UID          PID    PPID CLS PRI STIME TTY          TIME CMD
+yahya        286     285 TS   19 06:59 pts/0    00:00:00 -bash
+yahya        487     286 TS   19 07:00 pts/0    00:00:00 /bin/bash ./tests.sh
+yahya        564     487 TS   19 07:00 pts/0    00:00:00 [myShell] <defunct>
+yahya        572     286 TS   19 07:01 pts/0    00:00:00 /bin/bash ./tests.sh
+yahya        649     572 TS   19 07:01 pts/0    00:00:00 [myShell] <defunct>
+yahya        656     286 TS   19 07:02 pts/0    00:00:00 ./myShell
+yahya        666     656 TS   19 07:02 pts/0    00:00:00 sleep 100
+yahya        667     656 TS   19 07:02 pts/0    00:00:00 sleep 100
+yahya        668     656 TS   19 07:02 pts/0    00:00:00 sleep 100
+yahya        670     656 TS   19 07:02 pts/0    00:00:00 ps -cf
+```
+Notice: processes `666`, `667`, and `668` are running successfully in the background, when pressed ctrl+z, all processes of the pipe moved from foreground to the background.
 
