@@ -11,8 +11,15 @@
 #include <signal.h>
 #include "parse_command.h"
 
+/*
+Parses each single command
+< and > and &
+*/
+
 void parse_command(char* cmd, char** args, ExecutionContext* ctx) {
     int i = 0;
+
+    // split by space, separator between args
     char* token = strtok(cmd, " ");
     while (token != NULL && i < 99) {
         args[i++] = token;
@@ -29,21 +36,30 @@ void parse_command(char* cmd, char** args, ExecutionContext* ctx) {
         if (args[j] == NULL) continue;
 
         int len = strlen(args[j]);
+
+        // check if we found &, then mark as background process
+        // for the case 50& (no space)
         if (len > 0 && args[j][len - 1] == '&') {
             ctx->is_background = 1;
             if (len == 1) continue;
-            else args[j][len - 1] = '\0';
+            else args[j][len - 1] = '\0'; // set stop sign in c
         }
 
         if (strcmp(args[j], "<") == 0) {
+
+            // what goes after < is the filename
             ctx->input_file = args[j + 1];
             j++;
             continue;
         } else if (strcmp(args[j], ">") == 0) {
+
+            // what goes after > is the filename
             ctx->output_file = args[j + 1];
             j++;
             continue;
         } else if (strcmp(args[j], "&") == 0) {
+
+            // for the case with space
             ctx->is_background = 1;
             continue;
         }

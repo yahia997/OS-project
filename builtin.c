@@ -36,7 +36,6 @@ int builtin_cd_exit(char** args) {
 
 
 int builtin_pwd_history(char** args, char*** history, int history_cnt) {
-// int builtin(char** args) {
 
   if (args == NULL || args[0] == NULL) {
     return 0;
@@ -45,19 +44,22 @@ int builtin_pwd_history(char** args, char*** history, int history_cnt) {
   if (strcmp(args[0], "pwd") == 0) {
     char cwd[1024];
 
+    // getcwd => get abs path of the current working dir
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
       printf("%s\n", cwd);
-      fflush(stdout);
+      fflush(stdout); // show output immediately
     } else {
       perror("getcwd() error");
     }
 
     return 1;
   }else if(strcmp(args[0], "history") == 0) {
+
+    // loop through our created list
     for (int i = 0; i < history_cnt; i++) {
       if (history[i] != NULL && history[i][0] != NULL) {
         printf("%d  %s\n", i + 1, history[i][0]);
-        fflush(stdout);
+        fflush(stdout); // show output immediately
       }
     }
 

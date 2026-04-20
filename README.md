@@ -1,4 +1,35 @@
-- Built-in commands ALWAYS run in foreground
+# Ours shell
+The shell follows REPL (read, eval, print, loop), by using:
+1. `while(1)`
+2. Take input from user and parse commands.
+3. execute the commands.
+- builtin `cd` and `exit` using function `builtin_cd_exit`.
+- builtin `pwd` and `history` using function `builtin_pwd_history`.
+- other commands using `fork()` and `exec()` implemented in function `execute_single_command`
+- if more than one command run `execute_pipeline`
+4. return to setp 2.
+
+#### Why we separated between `cd`, `exit` and `pwd`, `history` ?
+They have different logic `cd` and `exit` can not have input/output redirections, but `pwd` and `history` have.
+
+## Parsing commands
+<img src='images/parsing.png' width='60%'>
+
+Parsing handles the cases such as `50&` and `50 &`. 
+
+## Built-in Commands
+### cd
+If there are no arguments other than `cd` (`arg[1] == NULL`), then `cd: at least one argument` is printed.
+
+### exit
+Nothing to mention here super easy
+
+### pwd
+`getcwd` => to get the current working directory.
+`fflush`: to show output immediately to the screen.
+
+### history
+Loop through our list and print commands.
 
 
 ### Test cases

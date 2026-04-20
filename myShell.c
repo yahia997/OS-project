@@ -17,7 +17,7 @@
 int main() {
     setbuf(stdout, NULL);
 
-    // History storage
+    // to store the executed commands for our builtin history command
     char*** history = (char***)malloc(1000 * sizeof(char**));
     int history_cnt = 0;
 
@@ -33,19 +33,20 @@ int main() {
         tcsetpgrp(STDIN_FILENO, shell_pgid);
     }
 
-    // Shell ignores these signals
+    // ignores default behaviuor of ctrl+c/z
     signal(SIGINT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTOU, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
 
-    // Main REPL
+    // REPL => real, eval, print, loop
     while (1) {
         if (isatty(STDIN_FILENO)) {
             printf("$ ");
         }
 
         char command[1024];
+        // fgets => read input line from the user
         if (fgets(command, sizeof(command), stdin) == NULL) {
             printf("\n");
             break;
@@ -53,25 +54,31 @@ int main() {
 
         command[strcspn(command, "\n")] = '\0';
         if (strlen(command) == 0) continue;
-
+        
+        // take copy from the input
         char command_copy[1024];
         strcpy(command_copy, command);
 
         add_to_history(history, &history_cnt, command);
 
-        // Split by pipe
+        // parse for pipes
         char* input_commands[50];
         int cmd_count = 0;
+
+        // split by |
         char* cmd = strtok(command_copy, "|");
         while (cmd != NULL && cmd_count < 50) {
             input_commands[cmd_count++] = cmd;
-            cmd = strtok(NULL, "|");
+            cmd = strtok(NULL, "|"); // looks for the next token
         }
-
+        
+        // 2d as pipes -> many commands -> each command contains many args
+        // each command has context (foregound or background, hold input/output directions)
         char* args_list[50][100];
         char** args_ptrs[50];
         ExecutionContext ctx_list[50];
 
+        // loop through commands and parse
         for (int i = 0; i < cmd_count; i++) {
             args_ptrs[i] = args_list[i];
             parse_command(input_commands[i], args_list[i], &ctx_list[i]);
