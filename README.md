@@ -31,6 +31,38 @@ Nothing to mention here super easy
 ### history
 Loop through our list and print commands.
 
+## Foreground and background execution
+This part is handled in two places:
+1. In single process execution
+2. In pipes
+
+### single process execution
+We `fork` the process, then if the written command is builtin we use it, if not we execute using `execvp`. The whole work are in parent part.
+
+If the `is_background` is marked as `True`, we just print the `pid`, and stops the background process from writing to terminal.
+
+### in pipes
+If in the backgroun we print `pipeline running in background`.
+
+## Input/Output Redirection
+This is also handled in single process execution and pipes. We talked about how we parsed it. The remaining is only to open the files read or write standard input/output only, if file does not exits we create one using flag `O_CREAT`, if exits: remove its content using `O_TRUNC`.
+Note that append is note implemented (not mentioned in the assignment) >> & <<
+
+## Pipes
+Each standard output of a process becomes the next input for the next process, commands are separated by `|` and parsed as mentioned. we handled how the first command will read the input, How the last command will write the output.
+
+Also we put all process in a process group to control them easily and assigned the first process as the leader group.
+
+## Signal Handling
+We create a process group for non built in commands to separate between shell and the child process, so that ctrl+c can not stop the process (the same for pipes and first process is the leader group).
+
+Ctrl+c => terminate foreground process only not the shell
+Ctrl+z => suspend the process (not killed so you can see in the `ps`).
+
+## Error Handling
+We ensured to print messages for mostly every case in the code to make our shell roboust and reliable.
+
+We also tested through various test cases which include edge cases as well.
 
 ### Test cases
 #### Build in commands without fork() nor exec()
