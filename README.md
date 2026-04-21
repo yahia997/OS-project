@@ -17,6 +17,8 @@ They have different logic `cd` and `exit` can not have input/output redirections
 
 Parsing handles the cases such as `50&` and `50 &`. 
 
+Note: when you need to write a string eg. `echo 'yahya'` remove `'` to be as `echo yahya`. this is our parsing logic to keep it simple.
+
 ## Built-in Commands
 ### cd
 If there are no arguments other than `cd` (`arg[1] == NULL`), then `cd: at least one argument` is printed.
@@ -29,7 +31,7 @@ Nothing to mention here super easy
 `fflush`: to show output immediately to the screen.
 
 ### history
-Loop through our list and print commands.
+Loop through our list and print commands. Commands are added before execution.
 
 ## Foreground and background execution
 This part is handled in two places:
